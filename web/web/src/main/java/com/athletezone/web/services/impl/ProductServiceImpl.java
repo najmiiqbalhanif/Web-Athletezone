@@ -94,15 +94,21 @@ public class ProductServiceImpl implements ProductService {
         productRepository.deleteById(id);
     }
 
+    private static final String BASE_IMAGE_URL = "http://10.0.2.2:8080/"; // Masih untuk emulator, harusnya sesuaikan dengan backendnya
+
     private ProductDTO convertToDTO(Product product) {
+        String photoPath = product.getPhotoUrl() != null ? product.getPhotoUrl().replace("\\", "/") : "";
+        String fullImageUrl = photoPath.isEmpty() ? "" : BASE_IMAGE_URL + photoPath;
+
         return ProductDTO.builder()
                 .id(product.getId())
                 .name(product.getName())
                 .brand(product.getBrand())
                 .price(product.getPrice())
-                .photoUrl(product.getPhotoUrl())
+                .photoUrl(fullImageUrl)
                 .category(product.getCategory())
                 .stock(product.getStock())
                 .build();
     }
+
 }

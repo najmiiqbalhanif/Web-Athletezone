@@ -1,9 +1,12 @@
 package com.athletezone.web.services.impl;
 
 import com.athletezone.web.dto.OrderDTO;
-import com.athletezone.web.models.Order;
-import com.athletezone.web.models.Payment;
+import com.athletezone.web.dto.PaymentItemDTO;
+import com.athletezone.web.models.*;
 import com.athletezone.web.repositories.OrderRepository;
+import com.athletezone.web.repositories.PaymentItemRepository;
+import com.athletezone.web.repositories.PaymentRepository;
+import com.athletezone.web.repositories.ProductRepository;
 import com.athletezone.web.services.OrderService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -14,9 +17,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
+    private final PaymentItemRepository paymentItemRepository;
+    private final PaymentRepository paymentRepository;
 
     @Override
     public List<OrderDTO> getAllOrders() {
@@ -62,4 +68,29 @@ public class OrderServiceImpl implements OrderService {
                 .address(order.getPayment().getAddress()) // Alamat pembayaran
                 .build();
     }
+
+    @Transactional
+    public Order processCheckout(User user, Payment payment, List<PaymentItemDTO> paymentItems) {
+        payment.setStatus("PENDING");
+        payment = paymentRepository.save(payment);
+
+        Order order = new Order();
+        order.setUser(user);
+        order.setPayment(payment);
+        order = orderRepository.save(order);
+
+        for (PaymentItemDTO itemDTO : paymentItems) {
+            PaymentItem paymentItem = new PaymentItem();
+            paymentItem.setPayment(payment);
+            paymentItem.setProductName(itemDTO.getProductName());
+            paymentItem.setQuantity(itemDTO.getQuantity());
+            paymentItem.setPrice(itemDTO.getPrice());
+            paymentItem.setSubTotal(itemDTO.getSubTotal());
+
+            paymentItemRepository.save(paymentItem);
+        }
+
+        return order;
+    }
+
 }

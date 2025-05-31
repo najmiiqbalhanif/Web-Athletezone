@@ -25,6 +25,12 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String password;
 
+    @Column(nullable = false)
+    private String fullName;
+
+    @Column(name = "profile_image")
+    private String profileImage; // Bisa disimpan path ke file atau URL
+
     // Relasi ke Cart (satu user memiliki satu keranjang)
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @EqualsAndHashCode.Exclude // Mencegah infinite recursion

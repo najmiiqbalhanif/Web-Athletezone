@@ -48,6 +48,32 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User registerUserApp(UserDTO userDTO) {
+        userRepository.findByEmail(userDTO.getEmail()).ifPresent(user -> {
+            throw new IllegalStateException("Email already in use");
+        });
+
+        // Buat user baru
+        User user = new User();
+        user.setUsername(userDTO.getUsername());
+        user.setEmail(userDTO.getEmail());
+        user.setPassword(userDTO.getPassword());
+        user.setEmail(userDTO.getFullName());
+
+        user = userRepository.save(user);
+
+        // Buat cart baru untuk user
+        Cart cart = new Cart();
+        cart.setUser(user); // Set user pada cart
+        cartRepository.save(cart); // Simpan cart ke database
+
+        // Set cart pada user
+        user.setCart(cart);
+
+        return userRepository.save(user);
+    }
+
+    @Override
     public boolean authenticateUser(String email, String password) {
         return userRepository.findByEmail(email)
                 .map(user -> user.getPassword().equals(password)) // Simpan password dalam bentuk hash di produksi

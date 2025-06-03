@@ -89,4 +89,27 @@ public class UserServiceImpl implements UserService {
     public User getUserById(Long id) {
         return userRepository.findById(id).orElse(null);
     }
+
+    @Override
+    public UserDTO DTOgetUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return convertToDTO(user);
+    }
+
+    private static final String BASE_IMAGE_URL = "http://10.0.2.2:8080/"; // Masih untuk emulator, harusnya sesuaikan dengan backendnya
+
+    private UserDTO convertToDTO(User user) {
+        String profileImagePath = user.getProfileImage() != null ? user.getProfileImage().replace("\\", "/") : "";
+        String fullProfileImageUrl = profileImagePath.isEmpty() ? "" : BASE_IMAGE_URL + profileImagePath;
+
+        return UserDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .password(user.getPassword())
+                .fullName(user.getFullName())
+                .profileImage(fullProfileImageUrl)
+                .build();
+    }
 }

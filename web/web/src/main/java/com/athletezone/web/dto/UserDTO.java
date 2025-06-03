@@ -1,5 +1,6 @@
 package com.athletezone.web.dto;
 
+import com.athletezone.web.models.BaseEntity;
 import lombok.*;
 
 import javax.validation.constraints.Size;
@@ -9,6 +10,7 @@ import javax.validation.constraints.Size;
 @AllArgsConstructor
 @Builder
 public class UserDTO {
+    private Long id;
     @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
     private String username;
     private String email;

@@ -1,5 +1,6 @@
 package com.athletezone.web.controllerREST;
 
+import com.athletezone.web.dto.LoginResponseDTO;
 import com.athletezone.web.dto.UserDTO;
 import com.athletezone.web.models.User;
 import com.athletezone.web.services.UserService;
@@ -12,7 +13,6 @@ import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") // jika kamu mengakses dari frontend lain
 public class loginRegisterControllerREST {
 
     private final UserService userService;
@@ -39,12 +39,21 @@ public class loginRegisterControllerREST {
             if (user != null) {
                 session.setAttribute("userId", user.getId());
 
-                // Bisa dikembangkan untuk mengembalikan detail user
-                return ResponseEntity.ok().body("Login successful. Welcome, " + user.getUsername());
+                // Buat DTO untuk response
+                LoginResponseDTO loginResponse = new LoginResponseDTO(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getEmail(),
+                        user.getFullName(),
+                        user.getProfileImage()
+                );
+
+                return ResponseEntity.ok(loginResponse);
             }
         }
         return ResponseEntity.status(401).body("Invalid email or password");
     }
+
 
     @PostMapping("/logout")
     public ResponseEntity<?> logoutUser(HttpSession session) {

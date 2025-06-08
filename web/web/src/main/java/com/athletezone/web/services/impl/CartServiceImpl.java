@@ -7,6 +7,7 @@ import com.athletezone.web.models.User;
 import com.athletezone.web.repositories.CartItemRepository;
 import com.athletezone.web.repositories.CartRepository;
 import com.athletezone.web.repositories.ProductRepository;
+import com.athletezone.web.repositories.UserRepository;   // << import UserRepository
 import com.athletezone.web.services.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class CartServiceImpl implements CartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
+    private final UserRepository userRepository;   // << tambahkan ini
 
     @Override
     public Cart getCartByUserId(Long userId) {
@@ -36,44 +38,55 @@ public class CartServiceImpl implements CartService {
         return cartItemRepository.findByCartId(cart.getId());
     }
 
-
     @Override
     public void addToCart(Long userId, Long productId) {
         // Cari cart berdasarkan user
         Cart cart = cartRepository.findByUserId(userId);
 
-        // Cari produk berdasarkan ID
+        if (cart == null) {
+            cart = new Cart();
+
+            // Ambil objek User dari userId
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            cart.setUser(user);  // Set User pada Cart
+            cart = cartRepository.save(cart); // Simpan cart baru dulu supaya dapat ID
+        }
+
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        // Periksa apakah produk sudah ada di cart items
+        // Cek apakah produk sudah ada di cart item
         Optional<CartItem> existingCartItem = cart.getCartItems().stream()
                 .filter(item -> item.getProduct().getId().equals(productId))
                 .findFirst();
 
         if (existingCartItem.isPresent()) {
-            // Jika produk sudah ada, tambahkan quantity
             CartItem cartItem = existingCartItem.get();
             cartItem.setQuantity(cartItem.getQuantity() + 1);
             cartItem.setSubTotal(cartItem.getQuantity() * product.getPrice());
+            cartItemRepository.save(cartItem);
         } else {
-            // Jika produk belum ada di keranjang, buat item baru
             CartItem newCartItem = CartItem.builder()
                     .cart(cart)
                     .product(product)
                     .quantity(1)
                     .subTotal(product.getPrice())
                     .build();
+            cartItemRepository.save(newCartItem);
+
+            // Perbarui koleksi cartItems agar tetap konsisten
             cart.getCartItems().add(newCartItem);
         }
 
-        // Hitung ulang total harga
-        double totalPrice = cart.getCartItems().stream()
+        // Hitung ulang total harga berdasarkan cartItems yang terbaru
+        double totalPrice = cartItemRepository.findByCartId(cart.getId())
+                .stream()
                 .mapToDouble(CartItem::getSubTotal)
                 .sum();
         cart.setTotalPrice(totalPrice);
 
-        // Simpan cart
         cartRepository.save(cart);
     }
 
@@ -82,8 +95,9 @@ public class CartServiceImpl implements CartService {
     public void clearCart(Long userId) {
         Cart cart = cartRepository.findByUserId(userId);
         if (cart != null) {
-            // Hapus semua CartItem yang ada pada Cart ini
             cartItemRepository.deleteAllByCartId(cart.getId());
+            cart.setTotalPrice(0);
+            cartRepository.save(cart);
         }
     }
 }

@@ -1,10 +1,11 @@
 package com.athletezone.web.controllerREST;
 
 import com.athletezone.web.dto.CartItemDTO;
-import com.athletezone.web.models.Cart;
 import com.athletezone.web.models.CartItem;
+import com.athletezone.web.models.Product;
 import com.athletezone.web.services.CartService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +19,7 @@ public class cartControllerREST {
 
     private final CartService cartService;
 
-    // 🔹 Tambahkan produk ke keranjang
+    // Endpoint untuk menambahkan produk ke cart
     @PostMapping("/add")
     public ResponseEntity<String> addToCart(@RequestParam Long userId, @RequestParam Long productId) {
         try {
@@ -29,48 +30,37 @@ public class cartControllerREST {
         }
     }
 
-    // 🔹 Ambil daftar item dalam cart (dengan DTO)
+    private static final String BASE_IMAGE_URL = "http://10.0.2.2:8080/";
+
+    // Ambil semua item cart berdasarkan userId
     @GetMapping("/items/{userId}")
     public ResponseEntity<List<CartItemDTO>> getCartItems(@PathVariable Long userId) {
         try {
             List<CartItem> cartItems = cartService.getCartItemsByUserId(userId);
 
-            // Konversi ke DTO
-            List<CartItemDTO> cartItemDTOs = cartItems.stream().map(item -> CartItemDTO.builder()
-                    .productName(item.getProduct().getName())
-                    .quantity(item.getQuantity())
-                    .price(item.getProduct().getPrice())
-                    .subTotal(item.getSubTotal())
-                    .build()).collect(Collectors.toList());
+            List<CartItemDTO> cartItemDTOs = cartItems.stream()
+                    .map(item -> {
+                        String rawPath = item.getProduct().getPhotoUrl() != null
+                                ? item.getProduct().getPhotoUrl().replace("\\", "/")
+                                : "";
+                        String fullImageUrl = rawPath.isEmpty() ? "" : BASE_IMAGE_URL + rawPath;
+
+                        return CartItemDTO.builder()
+                                .id(item.getProduct().getId())
+                                .name(item.getProduct().getName())
+                                .photoUrl(fullImageUrl)  // Di sini URL berbeda untuk setiap produk
+                                .price(item.getProduct().getPrice())
+                                .category(item.getProduct().getCategory())
+                                .brand(item.getProduct().getBrand())
+                                .quantity(item.getQuantity())
+                                .build();
+                    })
+                    .collect(Collectors.toList());
 
             return ResponseEntity.ok(cartItemDTOs);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-    // 🔹 Ambil keseluruhan cart (untuk total harga)
-    @GetMapping("/{userId}")
-    public ResponseEntity<Cart> getCartByUserId(@PathVariable Long userId) {
-        try {
-            Cart cart = cartService.getCartByUserId(userId);
-            if (cart == null) {
-                return ResponseEntity.notFound().build();
-            }
-            return ResponseEntity.ok(cart);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    // 🔹 Hapus seluruh isi keranjang
-    @DeleteMapping("/clear/{userId}")
-    public ResponseEntity<String> clearCart(@PathVariable Long userId) {
-        try {
-            cartService.clearCart(userId);
-            return ResponseEntity.ok("Cart cleared successfully.");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Failed to clear cart: " + e.getMessage());
-        }
-    }
 }

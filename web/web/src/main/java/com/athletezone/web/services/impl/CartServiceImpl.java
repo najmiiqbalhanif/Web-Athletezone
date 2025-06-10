@@ -7,7 +7,7 @@ import com.athletezone.web.models.User;
 import com.athletezone.web.repositories.CartItemRepository;
 import com.athletezone.web.repositories.CartRepository;
 import com.athletezone.web.repositories.ProductRepository;
-import com.athletezone.web.repositories.UserRepository;   // << import UserRepository
+import com.athletezone.web.repositories.UserRepository;
 import com.athletezone.web.services.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,28 +22,32 @@ public class CartServiceImpl implements CartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
-    private final UserRepository userRepository;   // << tambahkan ini
+    private final UserRepository userRepository;
 
     @Override
     public Cart getCartByUserId(Long userId) {
+        // Ambil Cart berdasarkan userId
         return cartRepository.findByUserId(userId);
     }
 
     @Override
     public List<CartItem> getCartItemsByUserId(Long userId) {
+        // Ambil Cart berdasarkan userId
         Cart cart = cartRepository.findByUserId(userId);
         if (cart == null) {
             throw new IllegalArgumentException("Cart not found for user ID: " + userId);
         }
+        // Ambil semua CartItem yang ada di Cart
         return cartItemRepository.findByCartId(cart.getId());
     }
 
     @Override
     public void addToCart(Long userId, Long productId) {
-        // Cari cart berdasarkan user
+        // Cari cart berdasarkan userId
         Cart cart = cartRepository.findByUserId(userId);
 
         if (cart == null) {
+            // Jika Cart belum ada, buat Cart baru
             cart = new Cart();
 
             // Ambil objek User dari userId
@@ -54,6 +58,7 @@ public class CartServiceImpl implements CartService {
             cart = cartRepository.save(cart); // Simpan cart baru dulu supaya dapat ID
         }
 
+        // Cari produk berdasarkan productId
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
@@ -63,20 +68,23 @@ public class CartServiceImpl implements CartService {
                 .findFirst();
 
         if (existingCartItem.isPresent()) {
+            // Jika CartItem sudah ada, update kuantitas dan subtotal
             CartItem cartItem = existingCartItem.get();
             cartItem.setQuantity(cartItem.getQuantity() + 1);
             cartItem.setSubTotal(cartItem.getQuantity() * product.getPrice());
-            cartItemRepository.save(cartItem);
+            cartItemRepository.save(cartItem);  // Simpan CartItem yang sudah diperbarui
         } else {
+            // Jika CartItem belum ada, buat CartItem baru
             CartItem newCartItem = CartItem.builder()
                     .cart(cart)
                     .product(product)
-                    .quantity(1)
-                    .subTotal(product.getPrice())
+                    .quantity(1)  // Default quantity
+                    .subTotal(product.getPrice())  // Subtotal = price * quantity
                     .build();
-            cartItemRepository.save(newCartItem);
 
-            // Perbarui koleksi cartItems agar tetap konsisten
+            cartItemRepository.save(newCartItem);  // Simpan CartItem baru
+
+            // Perbarui koleksi cartItems di Cart
             cart.getCartItems().add(newCartItem);
         }
 
@@ -85,19 +93,23 @@ public class CartServiceImpl implements CartService {
                 .stream()
                 .mapToDouble(CartItem::getSubTotal)
                 .sum();
-        cart.setTotalPrice(totalPrice);
+        cart.setTotalPrice(totalPrice);  // Set total harga
 
-        cartRepository.save(cart);
+        cartRepository.save(cart);  // Simpan Cart yang sudah diperbarui
     }
 
     @Override
     @Transactional
     public void clearCart(Long userId) {
+        // Ambil Cart berdasarkan userId
         Cart cart = cartRepository.findByUserId(userId);
         if (cart != null) {
+            // Hapus semua CartItem dari Cart
             cartItemRepository.deleteAllByCartId(cart.getId());
+
+            // Set total harga menjadi 0 setelah cart dibersihkan
             cart.setTotalPrice(0);
-            cartRepository.save(cart);
+            cartRepository.save(cart);  // Simpan Cart yang sudah dibersihkan
         }
     }
 }

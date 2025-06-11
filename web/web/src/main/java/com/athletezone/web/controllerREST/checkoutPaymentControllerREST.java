@@ -45,7 +45,7 @@ public class checkoutPaymentControllerREST {
         payment.setAddress(request.getAddress());
         payment.setPaymentMethod(request.getPaymentMethod());
         payment.setTotalAmount(request.getTotalAmount());
-        payment.setStatus("PENDING");
+        payment.setStatus("Paid");
 
         try {
             Order order = orderService.processCheckout(user, payment, request.getPaymentItems());

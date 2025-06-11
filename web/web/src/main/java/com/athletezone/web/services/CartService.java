@@ -1,6 +1,5 @@
 package com.athletezone.web.services;
 
-
 import com.athletezone.web.models.Cart;
 import com.athletezone.web.models.CartItem;
 import org.springframework.stereotype.Service;
@@ -16,6 +15,12 @@ public interface CartService {
     public List<CartItem> getCartItemsByUserId(Long userId);
 
     public void addToCart(Long userId, Long productId);
+
+    // --- TAMBAHAN BARU ---
+    public void decreaseProductQuantity(Long userId, Long productId);
+    public void removeProductFromCart(Long userId, Long productId);
+    public void updateProductQuantity(Long userId, Long productId, int newQuantity);
+    // --- AKHIR TAMBAHAN ---
 
     public void clearCart(Long userId);
 }

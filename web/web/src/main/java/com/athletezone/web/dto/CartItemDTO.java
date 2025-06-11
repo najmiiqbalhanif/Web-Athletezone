@@ -18,4 +18,5 @@ public class CartItemDTO {
     private String photoUrl;
     private String category;
     private String brand;
+    private ProductDTO product;
 }

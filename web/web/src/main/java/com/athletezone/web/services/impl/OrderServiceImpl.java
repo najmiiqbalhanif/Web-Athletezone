@@ -1,6 +1,8 @@
 package com.athletezone.web.services.impl;
 
-import com.athletezone.web.dto.OrderDTO;
+// ... (imports lainnya)
+
+import com.athletezone.web.dto.OrderDTO; // Penting: pastikan OrderDTO diimport
 import com.athletezone.web.dto.PaymentItemDTO;
 import com.athletezone.web.models.*;
 import com.athletezone.web.repositories.OrderRepository;
@@ -8,6 +10,7 @@ import com.athletezone.web.repositories.PaymentItemRepository;
 import com.athletezone.web.repositories.PaymentRepository;
 import com.athletezone.web.repositories.ProductRepository;
 import com.athletezone.web.services.OrderService;
+import com.athletezone.web.services.CartService; // Ini untuk injeksi CartService
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,9 +26,11 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final PaymentItemRepository paymentItemRepository;
     private final PaymentRepository paymentRepository;
+    private final ProductRepository productRepository; // Pastikan ini ada jika diperlukan
+    private final CartService cartService; // Pastikan ini ada
 
     @Override
-    public List<OrderDTO> getAllOrders() {
+    public List<OrderDTO> getAllOrders() { // <--- PASTIKAN METHOD INI ADA DAN TIDAK DIKOMENTARI
         return orderRepository.findAll().stream()
                 .map(this::orderToDTO)
                 .collect(Collectors.toList());
@@ -57,15 +62,15 @@ public class OrderServiceImpl implements OrderService {
         return OrderDTO.builder()
                 .id(order.getId())
                 .userId(order.getUser().getId())
-                .username(order.getUser().getUsername()) // Ambil username dari user
-                .createdOn(order.getPayment().getCreatedOn().toString()) // Tanggal order
-                .cartSummary(order.getPayment().getPaymentItems().stream() // Ringkasan cart
+                .username(order.getUser().getUsername())
+                .createdOn(order.getPayment().getCreatedOn().toString())
+                .cartSummary(order.getPayment().getPaymentItems().stream()
                         .map(item -> item.getProductName() + " x " + item.getQuantity())
                         .collect(Collectors.joining(", ")))
-                .totalAmount(order.getPayment().getTotalAmount()) // Total harga
-                .paymentMethod(order.getPayment().getPaymentMethod()) // Metode pembayaran
-                .paymentStatus(order.getPayment().getStatus()) // Status pembayaran
-                .address(order.getPayment().getAddress()) // Alamat pembayaran
+                .totalAmount(order.getPayment().getTotalAmount())
+                .paymentMethod(order.getPayment().getPaymentMethod())
+                .paymentStatus(order.getPayment().getStatus())
+                .address(order.getPayment().getAddress())
                 .build();
     }
 
@@ -90,7 +95,8 @@ public class OrderServiceImpl implements OrderService {
             paymentItemRepository.save(paymentItem);
         }
 
+        cartService.clearCart(user.getId()); // Panggil clearCart di sini
+
         return order;
     }
-
 }
